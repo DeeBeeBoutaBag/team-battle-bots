@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Team Battle Bots – Quiz Arena</title>
+  <title>Oakland Battle Bots '25 – Leadership Gauntlet</title>
   <meta charset="UTF-8" />
   <style>
     body {
@@ -155,7 +155,7 @@
     .logLine { margin-bottom: 4px; }
 
     #countdown {
-      font-size: 20px;
+      font-size: 18px;
       font-weight: bold;
       margin-top: 10px;
       min-height: 24px;
@@ -193,41 +193,104 @@
     .subtitle { font-size: 13px; opacity: 0.9; }
     .small { font-size: 11px; opacity: 0.7; }
 
-    /* Quiz section */
+    /* Quiz section – Kahoot-ish */
     #quizContainer {
-      margin-top: 12px;
+      margin-top: 20px;
       background: #020617;
-      border-radius: 10px;
-      padding: 10px;
+      border-radius: 18px;
+      padding: 16px 18px;
       text-align: left;
-      font-size: 12px;
-      max-height: 340px;
-      overflow-y: auto;
+      font-size: 14px;
+      max-width: 760px;
+      margin-left: auto;
+      margin-right: auto;
+      box-shadow: 0 0 20px rgba(15, 23, 42, 0.9);
       display: none;
     }
 
-    #quizTimer {
-      font-size: 16px;
+    #quizHeader {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: linear-gradient(90deg, #6366f1, #ec4899);
+    }
+
+    #quizTitle {
       font-weight: bold;
-      margin-bottom: 6px;
+      font-size: 16px;
+    }
+
+    #quizTimer {
+      font-size: 18px;
+      font-weight: bold;
     }
 
     #questionBox {
-      margin-bottom: 8px;
+      margin-top: 6px;
+      margin-bottom: 12px;
     }
 
-    #questionBox label {
+    .q-text {
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 12px;
+    }
+
+    /* CLICKABLE ANSWER CARDS */
+    .answerOption {
       display: block;
-      margin-left: 4px;
-      margin-bottom: 4px;
+      width: 100%;
+      text-align: left;
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: #0b1120;
+      border: 1px solid #374151;
+      margin-bottom: 8px;
       cursor: pointer;
+      line-height: 1.5;
+      word-break: break-word;
+      transition: transform 0.08s ease, box-shadow 0.08s ease, border-color 0.08s ease, background 0.08s ease;
+      box-sizing: border-box;
+    }
+
+    .answerOption:hover {
+      border-color: #60a5fa;
+      background: #020617;
+      transform: translateY(-1px);
+      box-shadow: 0 0 10px rgba(37, 99, 235, 0.4);
+    }
+
+    .answerOption span.answerLetter {
+      display: inline-block;
+      width: 26px;
+      height: 26px;
+      border-radius: 999px;
+      background: #1e293b;
+      text-align: center;
+      line-height: 26px;
+      font-weight: bold;
+      margin-right: 8px;
+      font-size: 13px;
+    }
+
+    .answerOption.selected {
+      border-color: #22c55e;
+      background: #022c22;
+      box-shadow: 0 0 12px rgba(34, 197, 94, 0.5);
     }
 
     #quizSummary {
-      margin-top: 8px;
-      font-size: 11px;
+      margin-top: 10px;
+      font-size: 12px;
       line-height: 1.4;
       text-align: left;
+      max-width: 760px;
+      margin-left: auto;
+      margin-right: auto;
     }
 
     #roleSelect {
@@ -251,30 +314,46 @@
       margin-top: 4px;
     }
 
-    /* Hide GM / Squad sections by default until role is picked */
     .hidden { display: none; }
+
+    /* Squad vs GM layout differences */
+    body.mode-squad #bots,
+    body.mode-squad #logPanel {
+      display: none;
+    }
+
+    body.mode-squad #arena {
+      justify-content: center;
+    }
+
+    body.mode-squad #controls {
+      width: min(820px, 100%);
+    }
+
+    body.mode-gm #controls {
+      width: 280px;
+    }
   </style>
 </head>
 <body>
 
-  <h1>🤖 Team Battle Bots – Quiz Arena</h1>
+  <h1>🤖 Team Battle Bots – Leadership Tournament</h1>
   <div class="subtitle">
-    Each breakout squad builds ONE bot from Python + HTML answers. Best bot wins.
+    Each breakout squad builds ONE bot from leadership questions. Then we run a 1v1 bracket until a champion remains.
   </div>
 
   <div id="roleSelect">
     <button onclick="selectRole('squad')">I'm a Squad</button>
     <button onclick="selectRole('gm')">I'm Game Master</button>
-    <div id="roleHint">⚠️ Tell students: click "I'm a Squad". Only you click "I'm Game Master".</div>
+    <div id="roleHint">⚠️ Students click "I'm a Squad". Only you click "I'm Game Master".</div>
   </div>
 
   <div id="arena" class="hidden">
-    <!-- Controls / Build Panel (both modes share this column, but content hides per role) -->
     <div id="controls">
       <!-- Squad Mode Panel -->
       <div id="squadPanel" class="hidden">
         <h2>Squad Bot Setup</h2>
-        <input id="botName" placeholder="Squad bot name (e.g. BugHunters)" maxlength="20">
+        <input id="botName" placeholder="Squad bot name (e.g. Justice League)" maxlength="20">
         <select id="botEmoji">
           <option value="🤖">🤖 Robot</option>
           <option value="🐉">🐉 Dragon</option>
@@ -287,9 +366,13 @@
         <button class="main" id="startQuizBtn" onclick="startQuiz()">Start Squad Quiz</button>
 
         <div id="quizContainer">
-          <div id="quizTimer"></div>
-          <div class="small">15 questions. Your squad has ~35 seconds per question. Talk fast.</div>
-          <br />
+          <div id="quizHeader">
+            <div id="quizTitle">Squad Quiz – Leadership & Power (20 Questions)</div>
+            <div id="quizTimer">⏳ 35s</div>
+          </div>
+          <div class="small" style="margin-bottom:8px;">
+            Your squad gets ~35 seconds per question. Answer fast and loud like Kahoot.
+          </div>
           <div id="questionBox"></div>
           <button class="main" onclick="submitAnswer()">Submit Answer</button>
         </div>
@@ -302,24 +385,24 @@
         <h2>Game Master Controls</h2>
         <div class="small">
           Leave this open. As squads finish, their bots will appear in the queue.<br>
-          When everyone is done, hit START BATTLE.
+          When everyone is done, hit START TOURNAMENT.
         </div>
         <button class="main" onclick="refreshBots()">Refresh Bots Now</button>
-        <button class="main" id="startBtn" onclick="prepareBattle()">START BATTLE</button>
+        <button class="main" id="startBtn" onclick="prepareTournament()">START TOURNAMENT</button>
         <div id="countdown"></div>
       </div>
     </div>
 
-    <!-- Bots List (only meaningful in GM mode, but students can see if they scroll) -->
+    <!-- Bots List (GM only visible; hidden for squads) -->
     <div id="bots">
-      <h2>Squad Bots in Queue</h2>
-      <div class="small">Once your squad finishes the quiz, your bot appears here.</div>
+      <h2>Squad Bots in Tournament</h2>
+      <div class="small">All finished squads appear here with their stats.</div>
       <div id="botsList"></div>
     </div>
 
-    <!-- Battle Log (GM mode attention) -->
+    <!-- Battle Log (GM focus; hidden for squads) -->
     <div id="logPanel">
-      <h2>Arena Log</h2>
+      <h2>Tournament Log</h2>
       <div id="log"></div>
     </div>
   </div>
@@ -329,14 +412,23 @@
 
     // Shared battle data (GM side)
     let bots = [];
-    let battleInterval = null;
     let battleRunning = false;
+    let duelInterval = null;
+
+    // Tournament state
+    let currentRoundCompetitors = [];
+    let nextRoundCompetitors = [];
+    let roundPairs = [];
+    let currentPairIndex = 0;
+    let roundNumber = 1;
+    let duelMatchNumber = 1;
 
     // Squad-side quiz data
     let buildingBot = null;
     let currentQuestionIndex = 0;
     let quizTimer = null;
     let timeLeft = 35;
+    let selectedAnswer = null; // track selected card
     let upgradeStats = {
       attack: 0,
       health: 0,
@@ -345,34 +437,34 @@
       correctCount: 0
     };
 
-    // =========================
     // ROLE SELECTION
-    // =========================
     function selectRole(role) {
       isGameMaster = (role === "gm");
 
       document.getElementById("arena").classList.remove("hidden");
       document.getElementById("roleSelect").classList.add("hidden");
 
+      document.body.classList.remove("mode-squad", "mode-gm");
       if (isGameMaster) {
+        document.body.classList.add("mode-gm");
         document.getElementById("gmPanel").classList.remove("hidden");
         document.getElementById("squadPanel").classList.add("hidden");
         refreshBots();
-        // Optionally auto-refresh every few seconds
+        // auto-refresh queue while idle
         setInterval(() => {
           if (!battleRunning) refreshBots(false);
         }, 5000);
       } else {
+        document.body.classList.add("mode-squad");
         document.getElementById("squadPanel").classList.remove("hidden");
         document.getElementById("gmPanel").classList.add("hidden");
       }
     }
 
-    // =========================
     // LOG UTILS
-    // =========================
     function log(message) {
       const logDiv = document.getElementById("log");
+      if (!logDiv) return; // squads won't see log, but avoid errors
       const line = document.createElement("div");
       line.className = "logLine";
       line.textContent = message;
@@ -390,201 +482,283 @@
       return "#ef4444";                             // red
     }
 
-    // =========================
-    // QUIZ QUESTIONS (15)
-    // =========================
-    const questions = [
-      // Python – Attack
+    // 20 LEADERSHIP QUESTIONS (multiple choice)
+    const leadershipQuestions = [
       {
         id: "q1",
-        text: "Q1 (Python – Attack): What does type(5) return in Python?",
+        topic: "Capitalism",
+        text: "Capitalism, as described here, is best understood as:",
         correct: "b",
         attr: "attack",
         options: {
-          a: "\"integer\"",
-          b: "The type <class 'int'>",
-          c: "int()",
-          d: "\"int\""
+          a: "A neutral way to trade goods and services",
+          b: "A system where a ruling class gains wealth by controlling resources and exploiting labor",
+          c: "Any system where everyone has equal access to money",
+          d: "A political strategy used only during elections"
         }
       },
       {
         id: "q2",
-        text: "Q2 (Python – Attack): What is the result of 3 * \"ha\" ?",
+        topic: "Capitalism",
+        text: "In this definition of capitalism, who owns and controls most resources?",
         correct: "c",
-        attr: "attack",
+        attr: "health",
         options: {
-          a: "\"ha3\"",
-          b: "[\"ha\", \"ha\", \"ha\"]",
-          c: "\"hahaha\"",
-          d: "An error"
+          a: "All workers equally",
+          b: "The government only",
+          c: "The ruling class",
+          d: "Community organizations"
         }
       },
       {
         id: "q3",
-        text: "Q3 (Python – Attack): Which is a valid Python variable name?",
-        correct: "c",
-        attr: "attack",
-        options: {
-          a: "first-name",
-          b: "1score",
-          c: "score_1",
-          d: "if"
-        }
-      },
-      // Python – Speed
-      {
-        id: "q4",
-        text: "Q4 (Python – Speed): Which keyword starts a loop?",
-        correct: "b",
+        topic: "Heterosexism",
+        text: "Heterosexism is a system that gives privilege to:",
+        correct: "a",
         attr: "speed",
         options: {
-          a: "loop",
-          b: "for",
-          c: "repeat",
-          d: "iterate"
+          a: "Heterosexual people at the expense of queer people",
+          b: "Anyone who is married",
+          c: "Only men, no matter who they love",
+          d: "Single people over people in relationships"
+        }
+      },
+      {
+        id: "q4",
+        topic: "Heterosexism",
+        text: "Which is an example of heterosexism?",
+        correct: "d",
+        attr: "crit",
+        options: {
+          a: "Allowing everyone to marry regardless of gender",
+          b: "Celebrating Pride month at school",
+          c: "Making space for queer student clubs",
+          d: "Assuming only straight relationships are normal and deserving of full rights"
         }
       },
       {
         id: "q5",
-        text: "Q5 (Python – Speed): range(5) generates:",
+        topic: "Internalized racism",
+        text: "Internalized racism happens when people of color:",
         correct: "b",
-        attr: "speed",
+        attr: "health",
         options: {
-          a: "Numbers 1–5",
-          b: "Numbers 0–4",
-          c: "[5]",
-          d: "Five random numbers"
+          a: "Never talk about racism at all",
+          b: "Absorb racist beliefs and begin to see themselves as inferior",
+          c: "Organize against racism in their communities",
+          d: "Only make friends with people of their same background"
         }
       },
       {
         id: "q6",
-        text: "Q6 (Python – Speed): In an if/else, when does else run?",
-        correct: "b",
-        attr: "speed",
+        topic: "Internalized racism",
+        text: "Which is a sign of internalized racism from this definition?",
+        correct: "c",
+        attr: "attack",
         options: {
-          a: "When the if is true",
-          b: "When the if is false",
-          c: "It ends the program",
-          d: "It creates a loop"
+          a: "Calling out racist jokes in the group chat",
+          b: "Pushing back on Eurocentric beauty standards",
+          c: "Believing lighter skin and straighter hair are automatically better",
+          d: "Reading books by authors of color"
         }
       },
-      // Python – Crit
       {
         id: "q7",
-        text: "Q7 (Python – Crit): What is True and False ?",
-        correct: "b",
-        attr: "crit",
+        topic: "Patriarchy",
+        text: "Patriarchy is described as a system that:",
+        correct: "a",
+        attr: "attack",
         options: {
-          a: "True",
-          b: "False",
-          c: "\"TrueFalse\"",
-          d: "An error"
+          a: "Privileges men and dominates women using strict gender roles",
+          b: "Only affects people in romantic relationships",
+          c: "Helps everyone express gender freely",
+          d: "Exists only in the past, not today"
         }
       },
       {
         id: "q8",
-        text: "Q8 (Python – Crit): What does not True evaluate to?",
+        topic: "Patriarchy",
+        text: "According to this definition, patriarchy is connected to:",
+        correct: "d",
+        attr: "speed",
+        options: {
+          a: "Only individual attitudes, not systems",
+          b: "Sports and entertainment only",
+          c: "Anything that is not about race or class",
+          d: "White supremacy, capitalism, and the State as interlocking systems"
+        }
+      },
+      {
+        id: "q9",
+        topic: "Power",
+        text: "One definition of power given here is:",
         correct: "c",
         attr: "crit",
         options: {
-          a: "\"True\"",
-          b: "True",
-          c: "False",
-          d: "An error"
-        }
-      },
-      // HTML – Health
-      {
-        id: "q9",
-        text: "Q9 (HTML – Health): Which tag creates a numbered list?",
-        correct: "b",
-        attr: "health",
-        options: {
-          a: "<ul>",
-          b: "<ol>",
-          c: "<li>",
-          d: "<list>"
+          a: "Having the loudest voice in the room",
+          b: "Always being physically stronger than others",
+          c: "The ability to define reality and convince others it is true",
+          d: "Being popular on social media"
         }
       },
       {
         id: "q10",
-        text: "Q10 (HTML – Health): Which tag makes text bold?",
+        topic: "Power",
+        text: "Another definition says power includes ownership and control of:",
         correct: "b",
         attr: "health",
         options: {
-          a: "<bold>",
-          b: "<b>",
-          c: "<style>",
-          d: "<head>"
+          a: "School clubs",
+          b: "Major resources of the state and decision-making about them",
+          c: "Only small local businesses",
+          d: "Any personal belongings someone has"
         }
       },
-      // HTML – Crit
       {
         id: "q11",
-        text: "Q11 (HTML – Crit): Which attribute helps with image accessibility?",
-        correct: "c",
-        attr: "crit",
+        topic: "Racism",
+        text: "According to the People's Institute, racism is:",
+        correct: "a",
+        attr: "attack",
         options: {
-          a: 'id=""',
-          b: 'href=""',
-          c: 'alt=""',
-          d: 'class=""'
+          a: "Race prejudice plus power",
+          b: "Any conflict between two people of different races",
+          c: "Only individual hateful comments",
+          d: "The same thing as culture"
         }
       },
       {
         id: "q12",
-        text: "Q12 (HTML – Crit): Where do you normally put JavaScript on a page?",
+        topic: "Reverse racism",
+        text: "Why does this definition say “reverse racism” is not real?",
+        correct: "d",
+        attr: "speed",
+        options: {
+          a: "Because people of color can never be angry at injustice",
+          b: "Because white people never experience harm",
+          c: "Because it only happens online",
+          d: "Because racism requires systemic power, which white people already hold in a white supremacy system"
+        }
+      },
+      {
+        id: "q13",
+        topic: "Social construction",
+        text: "A social construction is mainly about:",
         correct: "b",
         attr: "crit",
         options: {
-          a: "In a <div>",
-          b: "Inside <script>",
-          c: "Inside <title>",
-          d: "In the <img> tag"
-        }
-      },
-      // HTML – Health / Attack / Speed
-      {
-        id: "q13",
-        text: "Q13 (HTML – Health): Which tag holds all visible page content?",
-        correct: "a",
-        attr: "health",
-        options: {
-          a: "<body>",
-          b: "<head>",
-          c: "<style>",
-          d: "<meta>"
+          a: "Random traits people happen to have",
+          b: "Grouping people into categories to rank them for the benefit of a dominant group",
+          c: "Building new houses in a neighborhood",
+          d: "Any role someone chooses freely"
         }
       },
       {
         id: "q14",
-        text: "Q14 (HTML – Attack): Which tag is used for a line break?",
-        correct: "b",
-        attr: "attack",
+        topic: "White privilege",
+        text: "White privilege is described as:",
+        correct: "c",
+        attr: "health",
         options: {
-          a: "<hr>",
-          b: "<br>",
-          c: "<lb>",
-          d: "<line>"
+          a: "Individual white people always having easy lives",
+          b: "Something that only exists in the past",
+          c: "An institutionally perpetuated system of preferential treatment for white people based on European ancestry",
+          d: "Only about personal kindness between individuals"
         }
       },
       {
         id: "q15",
-        text: "Q15 (HTML – Speed): What does the <input> tag do?",
-        correct: "c",
+        topic: "White privilege",
+        text: "In this framework, white privilege and racial oppression are:",
+        correct: "b",
+        attr: "attack",
+        options: {
+          a: "Totally separate issues",
+          b: "Two sides of the same coin",
+          c: "Not connected to class or gender",
+          d: "Problems that only show up outside the U.S."
+        }
+      },
+      {
+        id: "q16",
+        topic: "White supremacy",
+        text: "White supremacy is defined here as a system that:",
+        correct: "a",
         attr: "speed",
         options: {
-          a: "Makes a dropdown only",
-          b: "Creates a clickable link",
-          c: "Lets users type something",
-          d: "Creates a header"
+          a: "Exploits and oppresses peoples and nations of color to maintain wealth, power, and privilege for white nations",
+          b: "Is only about individual hateful attitudes",
+          c: "Has no connection to history",
+          d: "Helps all races equally"
+        }
+      },
+      {
+        id: "q17",
+        topic: "Leadership & Responsibility",
+        text: "For a young leader, understanding systems like capitalism and patriarchy matters because:",
+        correct: "d",
+        attr: "crit",
+        options: {
+          a: "They are just vocabulary words for tests",
+          b: "It guarantees they will get rich",
+          c: "It lets them avoid any responsibility for change",
+          d: "It helps them see who has power, who is harmed, and where they can act for justice"
+        }
+      },
+      {
+        id: "q18",
+        topic: "Leadership & Community",
+        text: "A leader challenging internalized racism in their community might:",
+        correct: "c",
+        attr: "health",
+        options: {
+          a: "Encourage people to hide their culture",
+          b: "Tell people never to talk about race",
+          c: "Celebrate Black and Brown features, stories, and knowledge as valuable",
+          d: "Only listen to experts from Europe"
+        }
+      },
+      {
+        id: "q19",
+        topic: "Power & Access",
+        text: "Which example best matches the definition of power as 'access to those who control resources of the state'?",
+        correct: "b",
+        attr: "speed",
+        options: {
+          a: "Getting a lot of likes on a post",
+          b: "Being able to speak directly with school board members who decide budgets",
+          c: "Being the tallest player on the team",
+          d: "Owning a gaming console at home"
+        }
+      },
+      {
+        id: "q20",
+        topic: "Critical Leadership",
+        text: "When someone says, “My experience is the only reality that matters,” which power definition helps you challenge that?",
+        correct: "a",
+        attr: "crit",
+        options: {
+          a: "Power as the ability to define reality and get others to accept it",
+          b: "Power as being the funniest person in the group chat",
+          c: "Power as never making mistakes",
+          d: "Power as always agreeing with authority"
         }
       }
     ];
 
-    // =========================
+    // We'll shuffle once per squad quiz so sections feel randomized
+    function shuffledQuestions() {
+      const arr = [...leadershipQuestions];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    let questions = []; // will be set per squad run
+
     // SQUAD QUIZ FLOW
-    // =========================
     function startQuiz() {
       if (battleRunning) return;
 
@@ -600,15 +774,15 @@
 
       buildingBot = { name, emoji };
 
-      // Reset upgrades and quiz progress
       upgradeStats = { attack: 0, health: 0, speed: 0, crit: 0, correctCount: 0 };
       currentQuestionIndex = 0;
+      questions = shuffledQuestions(); // randomize order
 
       document.getElementById("quizSummary").textContent = "";
       document.getElementById("quizContainer").style.display = "block";
       document.getElementById("startQuizBtn").disabled = true;
 
-      log(`${emoji} Squad "${name}" started the quiz to power up their bot.`);
+      log(`${emoji} Squad "${name}" started the leadership quiz to power up their bot.`);
       showQuestion(currentQuestionIndex);
     }
 
@@ -620,20 +794,33 @@
 
       const q = questions[index];
       const box = document.getElementById("questionBox");
+      selectedAnswer = null; // reset selection
 
       box.innerHTML = `
-        <div class="q-text"><strong>${q.text}</strong></div>
+        <div class="q-text">${q.text}</div>
         ${Object.keys(q.options)
           .map(letter => `
-            <label>
-              <input type="radio" name="answer" value="${letter}">
-              ${q.options[letter]}
-            </label>
+            <div class="answerOption" data-value="${letter}" onclick="selectAnswer('${letter}')">
+              <span class="answerLetter">${letter.toUpperCase()}</span>
+              <span>${q.options[letter]}</span>
+            </div>
           `)
           .join("")}
       `;
 
       startQuestionTimer();
+    }
+
+    function selectAnswer(letter) {
+      selectedAnswer = letter;
+      const options = document.querySelectorAll(".answerOption");
+      options.forEach(opt => {
+        if (opt.getAttribute("data-value") === letter) {
+          opt.classList.add("selected");
+        } else {
+          opt.classList.remove("selected");
+        }
+      });
     }
 
     function startQuestionTimer() {
@@ -667,9 +854,8 @@
       }
 
       const q = questions[currentQuestionIndex];
-      const selected = document.querySelector('input[name="answer"]:checked');
 
-      if (selected && selected.value === q.correct) {
+      if (selectedAnswer && selectedAnswer === q.correct) {
         upgradeStats[q.attr]++;
         upgradeStats.correctCount++;
       }
@@ -678,7 +864,7 @@
     }
 
     function lockCurrentQuestionAsWrong() {
-      // Do nothing: unanswered == wrong, no stat upgrade
+      selectedAnswer = null;
     }
 
     function goToNextQuestion() {
@@ -689,7 +875,6 @@
     async function finalizeSquadBot() {
       if (!buildingBot) return;
 
-      // Base stats plus upgrades
       let maxHealth = 100 + upgradeStats.health * 15;
       let attackMin = 5 + upgradeStats.attack;
       let attackMax = 12 + upgradeStats.attack * 3;
@@ -723,31 +908,110 @@
       const summary = document.getElementById("quizSummary");
       summary.innerHTML = `
         ✅ Squad locked in <strong>${emoji} ${name}</strong><br>
-        Correct answers: <strong>${upgradeStats.correctCount}/15</strong><br>
+        Correct answers: <strong>${upgradeStats.correctCount}/20</strong><br>
         Upgrades → Attack: +${upgradeStats.attack}, Health: +${upgradeStats.health}, Speed: +${upgradeStats.speed}, Crit: +${upgradeStats.crit}<br><br>
-        🔥 Your bot has been sent to the arena. You can close this tab or wait for the battle.
+        🔥 Your bot has been sent to the tournament bracket. You can close this tab or wait for the stream.
       `;
 
-      log(`✅ ${emoji} Squad "${name}" finished the quiz: ${upgradeStats.correctCount}/15 correct. Their bot enters the queue!`);
+      log(`✅ ${emoji} Squad "${name}" finished the quiz: ${upgradeStats.correctCount}/20 correct. Their bot enters the bracket!`);
 
-      // Reset for this browser
       buildingBot = null;
       document.getElementById("startQuizBtn").disabled = false;
       document.getElementById("quizContainer").style.display = "none";
       document.getElementById("botName").value = "";
     }
 
-    // =========================
+    // --- BATTLE META: roles & underdog logic ---
+
+    function classifyBotsForBattle() {
+      bots.forEach(b => {
+        const avgAtk = (b.attackMin + b.attackMax) / 2;
+
+        // rough archetype based on stats
+        let style = "Trickster";
+        if (b.maxHealth >= 160) {
+          style = "Tank";
+        } else if (b.crit >= 30) {
+          style = "Assassin";
+        } else if (avgAtk >= 15) {
+          style = "Bruiser";
+        }
+
+        b.style = style;
+
+        // overall "power score" for underdog detection
+        b.powerScore =
+          avgAtk * 1.2 +
+          (b.maxHealth / 10) +
+          b.speed * 1.3 +
+          b.crit * 0.5;
+      });
+    }
+
+    const typeAdvantage = {
+      Tank:     { Tank: 1.0, Bruiser: 0.9, Assassin: 1.15, Trickster: 1.0 },
+      Bruiser:  { Tank: 1.1, Bruiser: 1.0, Assassin: 0.9, Trickster: 1.0 },
+      Assassin: { Tank: 1.25, Bruiser: 1.05, Assassin: 1.0, Trickster: 0.9 },
+      Trickster:{ Tank: 0.95, Bruiser: 1.1, Assassin: 1.05, Trickster: 1.0 }
+    };
+
+    function computeDamage(attacker, target) {
+      let base = randomBetween(attacker.attackMin, attacker.attackMax);
+
+      // role matchup
+      let matchup = 1.0;
+      const aType = attacker.style || "Trickster";
+      const tType = target.style || "Trickster";
+      if (typeAdvantage[aType] && typeAdvantage[aType][tType]) {
+        matchup = typeAdvantage[aType][tType];
+      }
+      base *= matchup;
+
+      // base crit chance
+      let effectiveCrit = attacker.crit;
+
+      // comeback buff if attacker is low HP
+      const hpRatio = attacker.health / attacker.maxHealth;
+      if (hpRatio < 0.3) {
+        effectiveCrit += 10;  // clutch chance
+        base *= 1.05;
+      }
+
+      // underdog buff: if attacker is clearly weaker than target
+      const attackerScore = attacker.powerScore || 0;
+      const targetScore = target.powerScore || 0;
+      let isUnderdogHit = false;
+      if (attackerScore + 6 < targetScore) {
+        isUnderdogHit = true;
+        effectiveCrit += 12;
+        base *= 1.18;
+      }
+
+      // crit roll
+      let critHit = false;
+      if (Math.random() * 100 < effectiveCrit) {
+        critHit = true;
+        base *= 1.8;
+      }
+
+      const finalDamage = Math.max(1, Math.round(base));
+      return { damage: finalDamage, critHit, matchup, isUnderdogHit };
+    }
+
     // GM: FETCH & RENDER BOTS
-    // =========================
     async function refreshBots(showLog = true) {
       try {
         const res = await fetch("/api/bots");
         const data = await res.json();
         bots = data || [];
+        // reset any missing health display
+        bots.forEach(b => {
+          if (b.health == null) b.health = b.maxHealth;
+        });
+        classifyBotsForBattle();
         renderAllBots();
         if (showLog) {
-          log(`🔄 Game Master refreshed bots. Total squads: ${bots.length}`);
+          log(`🔄 Refreshed bots. Total squads: ${bots.length}`);
         }
       } catch (err) {
         console.error("Error fetching bots:", err);
@@ -775,7 +1039,8 @@
               HP: <span id="hp-${bot.id}">${bot.health}</span> |
               ATK: ${bot.attackMin}-${bot.attackMax} |
               SPD: ${bot.speed} |
-              CRIT: ${bot.crit}%
+              CRIT: ${bot.crit}% |
+              ROLE: ${bot.style || "—"}
             </div>
           </div>
           <button class="tauntBtn" onclick="taunt(${bot.id})">Taunt</button>
@@ -826,91 +1091,165 @@
       log(`${bot.emoji} ${bot.name} taunts the arena.`);
     }
 
-    // =========================
-    // BATTLE LOGIC (GM ONLY)
-    // =========================
-    function prepareBattle() {
+    // -------- TOURNAMENT BRACKET LOGIC (1v1, rounds) --------
+
+    function prepareTournament() {
       if (!isGameMaster) {
-        alert("Only the Game Master can start the battle.");
+        alert("Only the Game Master can start the tournament.");
         return;
       }
       if (battleRunning) return;
       if (bots.length < 2) {
-        alert("Need at least 2 squad bots to fight.");
+        alert("Need at least 2 squad bots to run a bracket.");
         return;
       }
 
       battleRunning = true;
 
+      // Reset health for fair tournament
+      bots.forEach(b => {
+        b.health = b.maxHealth;
+      });
+      classifyBotsForBattle();
+      renderAllBots();
+
+      // Random seeding
+      currentRoundCompetitors = [...bots].sort(() => Math.random() - 0.5);
+      nextRoundCompetitors = [];
+      roundNumber = 1;
+      duelMatchNumber = 1;
+
+      log("🏁 Tournament seeded. Bots are being shuffled into a bracket...");
+      makeRoundPairs();
+
       let count = 3;
       const countdownDiv = document.getElementById("countdown");
-      countdownDiv.textContent = "Battle starts in: " + count;
+      countdownDiv.textContent = "Tournament starts in: " + count;
 
       const countdownInterval = setInterval(() => {
         count--;
         if (count > 0) {
-          countdownDiv.textContent = "Battle starts in: " + count;
+          countdownDiv.textContent = "Tournament starts in: " + count;
         } else {
           clearInterval(countdownInterval);
-          countdownDiv.textContent = "FIGHT!";
-          log("🔥 The squad battle begins!");
-          startBattleLoop();
+          countdownDiv.textContent = "Round 1 – Fight!";
+          log(`🔥 ROUND ${roundNumber} begins! Every match is 1v1 – winner moves on.`);
+          startNextDuel();
         }
       }, 900);
     }
 
-    function startBattleLoop() {
-      if (battleInterval) clearInterval(battleInterval);
+    function makeRoundPairs() {
+      roundPairs = [];
+      nextRoundCompetitors = [];
+      currentPairIndex = 0;
 
-      battleInterval = setInterval(() => {
-        const alive = bots.filter(b => b.health > 0);
+      // if odd, last bot gets a bye
+      if (currentRoundCompetitors.length % 2 === 1) {
+        const byeBot = currentRoundCompetitors.pop();
+        nextRoundCompetitors.push(byeBot);
+        log(`🎫 BYE: ${byeBot.emoji} ${byeBot.name} (${byeBot.style}) advances automatically to the next round.`);
+      }
 
-        if (alive.length <= 1) {
-          clearInterval(battleInterval);
+      for (let i = 0; i < currentRoundCompetitors.length; i += 2) {
+        const a = currentRoundCompetitors[i];
+        const b = currentRoundCompetitors[i + 1];
+        roundPairs.push([a, b]);
+      }
+    }
+
+    function startNextDuel() {
+      // If we finished all pairs in this round, move to next round
+      if (currentPairIndex >= roundPairs.length) {
+        // If only one bot remains overall, we have a champion
+        if (nextRoundCompetitors.length === 1) {
+          const champ = nextRoundCompetitors[0];
           const countdownDiv = document.getElementById("countdown");
-          if (alive.length === 1) {
-            const winner = alive[0];
-            countdownDiv.textContent = `🏆 WINNER: ${winner.emoji} ${winner.name}`;
-            log(`🏆 WINNER: ${winner.emoji} ${winner.name} is the top squad bot.`);
-          } else {
-            countdownDiv.textContent = "No one survived… 😬";
-            log("No bots survived. The arena claims all.");
-          }
+          countdownDiv.textContent = `🏆 CHAMPION: ${champ.emoji} ${champ.name}`;
+          log(`🏆 TOURNAMENT CHAMPION: ${champ.emoji} ${champ.name} (${champ.style}) survives every round!`);
+          battleRunning = false;
           return;
         }
 
-        const attacker = pickWeightedAttacker(alive);
-        let target = alive[Math.floor(Math.random() * alive.length)];
-        if (attacker.id === target.id && alive.length > 1) {
-          target = alive.filter(b => b.id !== attacker.id)[0];
+        // Otherwise, start the next round with winners
+        currentRoundCompetitors = [...nextRoundCompetitors];
+        makeRoundPairs();
+        roundNumber++;
+        duelMatchNumber = 1;
+        log(`🔥 ROUND ${roundNumber} begins with ${currentRoundCompetitors.length + nextRoundCompetitors.length} bots in play.`);
+      }
+
+      const [a, b] = roundPairs[currentPairIndex];
+      log(`⚔️ ROUND ${roundNumber}, MATCH ${duelMatchNumber}: ${a.emoji} ${a.name} (${a.style}) vs ${b.emoji} ${b.name} (${b.style}). Place your bets.`);
+      currentPairIndex++;
+      duelMatchNumber++;
+
+      startDuelLoop(a, b);
+    }
+
+    function startDuelLoop(botA, botB) {
+      if (duelInterval) clearInterval(duelInterval);
+
+      // Ensure full health entering match (in case)
+      botA.health = botA.health ?? botA.maxHealth;
+      botB.health = botB.health ?? botB.maxHealth;
+      updateBotUI(botA);
+      updateBotUI(botB);
+
+      duelInterval = setInterval(() => {
+        const alive = [botA, botB].filter(b => b.health > 0);
+        if (alive.length <= 1) {
+          clearInterval(duelInterval);
+          const winner = alive[0];
+          const loser = (winner && winner.id === botA.id) ? botB : botA;
+
+          if (winner) {
+            log(`💥 ${winner.emoji} ${winner.name} (${winner.style}) ELIMINATES ${loser.emoji} ${loser.name} and moves on!`);
+            nextRoundCompetitors.push(winner);
+          } else {
+            log("Both bots knocked each other out – no one advances from this match.");
+          }
+          startNextDuel();
+          return;
         }
 
-        let damage = randomBetween(attacker.attackMin, attacker.attackMax);
-        let critHit = false;
-        if (Math.random() * 100 < attacker.crit) {
-          damage *= 2;
-          critHit = true;
-        }
+        // decide attacker based on speed
+        const attacker = pickWeightedAttacker([botA, botB]);
+        const target = attacker.id === botA.id ? botB : botA;
 
+        const { damage, critHit, matchup, isUnderdogHit } = computeDamage(attacker, target);
         target.health = Math.max(0, target.health - damage);
 
         animateAttack(attacker, target);
         updateBotUI(target);
 
+        const hpLeft = Math.round(target.health);
+        const lowHp = hpLeft > 0 && target.health / target.maxHealth < 0.25;
+
+        let matchupTag = "";
+        if (matchup > 1.15) matchupTag = " (counter hit!)";
+        else if (matchup < 0.9) matchupTag = " (resisted)";
+
         if (target.health <= 0) {
-          if (critHit) {
-            log(`💥 CRIT KO! ${attacker.emoji} ${attacker.name} deletes ${target.emoji} ${target.name} with ${Math.round(damage)} damage!`);
+          if (critHit && isUnderdogHit) {
+            log(`💣 UPSET KO! ${attacker.emoji} ${attacker.name} (${attacker.style}) deletes favorite ${target.emoji} ${target.name} with ${damage} damage${matchupTag}. Underdog moves on!`);
+          } else if (critHit) {
+            log(`💥 CRIT KO! ${attacker.emoji} ${attacker.name} (${attacker.style}) finishes ${target.emoji} ${target.name} with ${damage} damage${matchupTag}.`);
           } else {
-            log(`💥 ${attacker.emoji} ${attacker.name} KOs ${target.emoji} ${target.name} with ${Math.round(damage)} damage!`);
+            log(`💥 ${attacker.emoji} ${attacker.name} (${attacker.style}) knocks out ${target.emoji} ${target.name} for ${damage} damage${matchupTag}.`);
           }
         } else {
-          if (critHit) {
-            log(`⚡ CRIT! ${attacker.emoji} ${attacker.name} hits ${target.emoji} ${target.name} for ${Math.round(damage)}. (${Math.round(target.health)} HP left)`);
+          if (critHit && isUnderdogHit) {
+            log(`⚡ UPSET STRIKE! ${attacker.emoji} ${attacker.name} (${attacker.style}) stuns ${target.emoji} ${target.name} for ${damage} damage${matchupTag}. ${hpLeft} HP left – crowd screaming.`);
+          } else if (critHit) {
+            log(`⚡ CRIT! ${attacker.emoji} ${attacker.name} (${attacker.style}) blasts ${target.emoji} ${target.name} for ${damage} damage${matchupTag}. (${hpLeft} HP left)`);
+          } else if (lowHp) {
+            log(`😱 ${attacker.emoji} ${attacker.name} (${attacker.style}) leaves ${target.emoji} ${target.name} hanging on with only ${hpLeft} HP${matchupTag}. One more tap might end it.`);
           } else {
-            log(`⚔️ ${attacker.emoji} ${attacker.name} hits ${target.emoji} ${target.name} for ${Math.round(damage)}. (${Math.round(target.health)} HP left)`);
+            log(`🥊 ${attacker.emoji} ${attacker.name} (${attacker.style}) tags ${target.emoji} ${target.name} for ${damage} damage${matchupTag}. (${hpLeft} HP left)`);
           }
         }
-      }, 750);
+      }, 1100);
     }
 
     function pickWeightedAttacker(alive) {
