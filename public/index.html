@@ -229,55 +229,95 @@
       line-height: 1.4;
       text-align: left;
     }
+
+    #roleSelect {
+      margin-bottom: 12px;
+    }
+
+    #roleSelect button {
+      margin: 0 6px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+      background: #e5e7eb;
+      color: #111827;
+    }
+
+    #roleHint {
+      font-size: 12px;
+      opacity: 0.9;
+      margin-top: 4px;
+    }
+
+    /* Hide GM / Squad sections by default until role is picked */
+    .hidden { display: none; }
   </style>
 </head>
 <body>
 
   <h1>🤖 Team Battle Bots – Quiz Arena</h1>
   <div class="subtitle">
-    Breakout squads of 6 build ONE bot from Python + HTML answers. Best bot wins.
+    Each breakout squad builds ONE bot from Python + HTML answers. Best bot wins.
   </div>
 
-  <div id="arena">
-    <!-- Controls / Build Panel -->
-    <div id="controls">
-      <h2>Build Your Squad's Bot</h2>
-      <input id="botName" placeholder="Squad bot name (e.g. BugHunters)" maxlength="20">
-      <select id="botEmoji">
-        <option value="🤖">🤖 Robot</option>
-        <option value="🐉">🐉 Dragon</option>
-        <option value="💀">💀 Skull</option>
-        <option value="🦈">🦈 Shark</option>
-        <option value="🐐">🐐 GOAT</option>
-        <option value="🔥">🔥 Fire</option>
-        <option value="⚡">⚡ Lightning</option>
-      </select>
-      <button class="main" id="startQuizBtn" onclick="startQuiz()">Start Squad Quiz</button>
+  <div id="roleSelect">
+    <button onclick="selectRole('squad')">I'm a Squad</button>
+    <button onclick="selectRole('gm')">I'm Game Master</button>
+    <div id="roleHint">⚠️ Tell students: click "I'm a Squad". Only you click "I'm Game Master".</div>
+  </div>
 
-      <div id="quizContainer">
-        <div id="quizTimer"></div>
-        <div class="small">15 questions. Your squad has ~35 seconds per question. Talk fast.</div>
-        <br />
-        <div id="questionBox"></div>
-        <button class="main" onclick="submitAnswer()">Submit Answer</button>
+  <div id="arena" class="hidden">
+    <!-- Controls / Build Panel (both modes share this column, but content hides per role) -->
+    <div id="controls">
+      <!-- Squad Mode Panel -->
+      <div id="squadPanel" class="hidden">
+        <h2>Squad Bot Setup</h2>
+        <input id="botName" placeholder="Squad bot name (e.g. BugHunters)" maxlength="20">
+        <select id="botEmoji">
+          <option value="🤖">🤖 Robot</option>
+          <option value="🐉">🐉 Dragon</option>
+          <option value="💀">💀 Skull</option>
+          <option value="🦈">🦈 Shark</option>
+          <option value="🐐">🐐 GOAT</option>
+          <option value="🔥">🔥 Fire</option>
+          <option value="⚡">⚡ Lightning</option>
+        </select>
+        <button class="main" id="startQuizBtn" onclick="startQuiz()">Start Squad Quiz</button>
+
+        <div id="quizContainer">
+          <div id="quizTimer"></div>
+          <div class="small">15 questions. Your squad has ~35 seconds per question. Talk fast.</div>
+          <br />
+          <div id="questionBox"></div>
+          <button class="main" onclick="submitAnswer()">Submit Answer</button>
+        </div>
+
+        <div id="quizSummary"></div>
       </div>
 
-      <div id="quizSummary"></div>
-
-      <h2>Battle Control</h2>
-      <button class="main" id="startBtn" onclick="prepareBattle()">START BATTLE</button>
-      <div id="countdown"></div>
-      <div class="small">Game Master: only hit this when ALL squads have added their bot.</div>
+      <!-- Game Master Panel -->
+      <div id="gmPanel" class="hidden">
+        <h2>Game Master Controls</h2>
+        <div class="small">
+          Leave this open. As squads finish, their bots will appear in the queue.<br>
+          When everyone is done, hit START BATTLE.
+        </div>
+        <button class="main" onclick="refreshBots()">Refresh Bots Now</button>
+        <button class="main" id="startBtn" onclick="prepareBattle()">START BATTLE</button>
+        <div id="countdown"></div>
+      </div>
     </div>
 
-    <!-- Bots List -->
+    <!-- Bots List (only meaningful in GM mode, but students can see if they scroll) -->
     <div id="bots">
       <h2>Squad Bots in Queue</h2>
-      <div class="small">One bot per breakout room. Taunts are allowed. 😈</div>
+      <div class="small">Once your squad finishes the quiz, your bot appears here.</div>
       <div id="botsList"></div>
     </div>
 
-    <!-- Battle Log -->
+    <!-- Battle Log (GM mode attention) -->
     <div id="logPanel">
       <h2>Arena Log</h2>
       <div id="log"></div>
@@ -285,15 +325,18 @@
   </div>
 
   <script>
+    let isGameMaster = false;
+
+    // Shared battle data (GM side)
     let bots = [];
     let battleInterval = null;
     let battleRunning = false;
-    let buildingBot = null;
 
+    // Squad-side quiz data
+    let buildingBot = null;
     let currentQuestionIndex = 0;
     let quizTimer = null;
     let timeLeft = 35;
-
     let upgradeStats = {
       attack: 0,
       health: 0,
@@ -302,6 +345,54 @@
       correctCount: 0
     };
 
+    // =========================
+    // ROLE SELECTION
+    // =========================
+    function selectRole(role) {
+      isGameMaster = (role === "gm");
+
+      document.getElementById("arena").classList.remove("hidden");
+      document.getElementById("roleSelect").classList.add("hidden");
+
+      if (isGameMaster) {
+        document.getElementById("gmPanel").classList.remove("hidden");
+        document.getElementById("squadPanel").classList.add("hidden");
+        refreshBots();
+        // Optionally auto-refresh every few seconds
+        setInterval(() => {
+          if (!battleRunning) refreshBots(false);
+        }, 5000);
+      } else {
+        document.getElementById("squadPanel").classList.remove("hidden");
+        document.getElementById("gmPanel").classList.add("hidden");
+      }
+    }
+
+    // =========================
+    // LOG UTILS
+    // =========================
+    function log(message) {
+      const logDiv = document.getElementById("log");
+      const line = document.createElement("div");
+      line.className = "logLine";
+      line.textContent = message;
+      logDiv.appendChild(line);
+      logDiv.scrollTop = logDiv.scrollHeight;
+    }
+
+    function randomBetween(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function getHealthColor(healthPercent) {
+      if (healthPercent > 60) return "#22c55e";     // green
+      if (healthPercent > 30) return "#facc15";     // yellow
+      return "#ef4444";                             // red
+    }
+
+    // =========================
+    // QUIZ QUESTIONS (15)
+    // =========================
     const questions = [
       // Python – Attack
       {
@@ -409,10 +500,10 @@
         correct: "b",
         attr: "health",
         options: {
-          a: "&lt;ul&gt;",
-          b: "&lt;ol&gt;",
-          c: "&lt;li&gt;",
-          d: "&lt;list&gt;"
+          a: "<ul>",
+          b: "<ol>",
+          c: "<li>",
+          d: "<list>"
         }
       },
       {
@@ -421,10 +512,10 @@
         correct: "b",
         attr: "health",
         options: {
-          a: "&lt;bold&gt;",
-          b: "&lt;b&gt;",
-          c: "&lt;style&gt;",
-          d: "&lt;head&gt;"
+          a: "<bold>",
+          b: "<b>",
+          c: "<style>",
+          d: "<head>"
         }
       },
       // HTML – Crit
@@ -434,10 +525,10 @@
         correct: "c",
         attr: "crit",
         options: {
-          a: "id=\"\"",
-          b: "href=\"\"",
-          c: "alt=\"\"",
-          d: "class=\"\""
+          a: 'id=""',
+          b: 'href=""',
+          c: 'alt=""',
+          d: 'class=""'
         }
       },
       {
@@ -446,10 +537,10 @@
         correct: "b",
         attr: "crit",
         options: {
-          a: "In a &lt;div&gt;",
-          b: "Inside &lt;script&gt;",
-          c: "Inside &lt;title&gt;",
-          d: "In the &lt;img&gt; tag"
+          a: "In a <div>",
+          b: "Inside <script>",
+          c: "Inside <title>",
+          d: "In the <img> tag"
         }
       },
       // HTML – Health / Attack / Speed
@@ -459,10 +550,10 @@
         correct: "a",
         attr: "health",
         options: {
-          a: "&lt;body&gt;",
-          b: "&lt;head&gt;",
-          c: "&lt;style&gt;",
-          d: "&lt;meta&gt;"
+          a: "<body>",
+          b: "<head>",
+          c: "<style>",
+          d: "<meta>"
         }
       },
       {
@@ -471,15 +562,15 @@
         correct: "b",
         attr: "attack",
         options: {
-          a: "&lt;hr&gt;",
-          b: "&lt;br&gt;",
-          c: "&lt;lb&gt;",
-          d: "&lt;line&gt;"
+          a: "<hr>",
+          b: "<br>",
+          c: "<lb>",
+          d: "<line>"
         }
       },
       {
         id: "q15",
-        text: "Q15 (HTML – Speed): What does the &lt;input&gt; tag do?",
+        text: "Q15 (HTML – Speed): What does the <input> tag do?",
         correct: "c",
         attr: "speed",
         options: {
@@ -491,26 +582,9 @@
       }
     ];
 
-    function log(message) {
-      const logDiv = document.getElementById("log");
-      const line = document.createElement("div");
-      line.className = "logLine";
-      line.textContent = message;
-      logDiv.appendChild(line);
-      logDiv.scrollTop = logDiv.scrollHeight;
-    }
-
-    function randomBetween(min, max) {
-      return Math.floor(Math.random() * (max - min + 1)) + min;
-    }
-
-    function getHealthColor(healthPercent) {
-      if (healthPercent > 60) return "#22c55e";     // green
-      if (healthPercent > 30) return "#facc15";     // yellow
-      return "#ef4444";                             // red
-    }
-
-    // QUIZ LOGIC
+    // =========================
+    // SQUAD QUIZ FLOW
+    // =========================
     function startQuiz() {
       if (battleRunning) return;
 
@@ -612,7 +686,7 @@
       showQuestion(currentQuestionIndex);
     }
 
-    function finalizeSquadBot() {
+    async function finalizeSquadBot() {
       if (!buildingBot) return;
 
       // Base stats plus upgrades
@@ -622,15 +696,12 @@
       let speed = 5 + upgradeStats.speed * 2;
       let critChance = 5 + upgradeStats.crit * 6;
 
-      const botId = Date.now();
       const name = buildingBot.name;
       const emoji = buildingBot.emoji;
 
-      const bot = {
-        id: botId,
+      const botPayload = {
         name,
         emoji,
-        health: maxHealth,
         maxHealth,
         attackMin,
         attackMax,
@@ -638,52 +709,81 @@
         crit: critChance
       };
 
-      bots.push(bot);
-      renderBot(bot);
+      try {
+        await fetch("/api/bots", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(botPayload)
+        });
+      } catch (err) {
+        console.error("Error sending bot:", err);
+        alert("Error sending bot to arena. Tell the Game Master.");
+      }
 
       const summary = document.getElementById("quizSummary");
       summary.innerHTML = `
         ✅ Squad locked in <strong>${emoji} ${name}</strong><br>
         Correct answers: <strong>${upgradeStats.correctCount}/15</strong><br>
-        Upgrades → Attack: +${upgradeStats.attack}, Health: +${upgradeStats.health}, Speed: +${upgradeStats.speed}, Crit: +${upgradeStats.crit}
+        Upgrades → Attack: +${upgradeStats.attack}, Health: +${upgradeStats.health}, Speed: +${upgradeStats.speed}, Crit: +${upgradeStats.crit}<br><br>
+        🔥 Your bot has been sent to the arena. You can close this tab or wait for the battle.
       `;
 
       log(`✅ ${emoji} Squad "${name}" finished the quiz: ${upgradeStats.correctCount}/15 correct. Their bot enters the queue!`);
 
-      // Reset for next squad
+      // Reset for this browser
       buildingBot = null;
       document.getElementById("startQuizBtn").disabled = false;
       document.getElementById("quizContainer").style.display = "none";
       document.getElementById("botName").value = "";
     }
 
-    // BOT RENDERING
-    function renderBot(bot) {
+    // =========================
+    // GM: FETCH & RENDER BOTS
+    // =========================
+    async function refreshBots(showLog = true) {
+      try {
+        const res = await fetch("/api/bots");
+        const data = await res.json();
+        bots = data || [];
+        renderAllBots();
+        if (showLog) {
+          log(`🔄 Game Master refreshed bots. Total squads: ${bots.length}`);
+        }
+      } catch (err) {
+        console.error("Error fetching bots:", err);
+        if (showLog) log("❌ Error fetching bots.");
+      }
+    }
+
+    function renderAllBots() {
       const list = document.getElementById("botsList");
+      list.innerHTML = "";
 
-      const botDiv = document.createElement("div");
-      botDiv.className = "bot";
-      botDiv.id = "bot-" + bot.id;
+      bots.forEach(bot => {
+        const botDiv = document.createElement("div");
+        botDiv.className = "bot";
+        botDiv.id = "bot-" + bot.id;
 
-      botDiv.innerHTML = `
-        <div class="botEmoji">${bot.emoji}</div>
-        <div class="botInfo">
-          <div class="botName">${bot.name}</div>
-          <div class="health">
-            <div class="bar" id="bar-${bot.id}"></div>
+        botDiv.innerHTML = `
+          <div class="botEmoji">${bot.emoji}</div>
+          <div class="botInfo">
+            <div class="botName">${bot.name}</div>
+            <div class="health">
+              <div class="bar" id="bar-${bot.id}"></div>
+            </div>
+            <div class="stats">
+              HP: <span id="hp-${bot.id}">${bot.health}</span> |
+              ATK: ${bot.attackMin}-${bot.attackMax} |
+              SPD: ${bot.speed} |
+              CRIT: ${bot.crit}%
+            </div>
           </div>
-          <div class="stats">
-            HP: <span id="hp-${bot.id}">${bot.health}</span> |
-            ATK: ${bot.attackMin}-${bot.attackMax} |
-            SPD: ${bot.speed} |
-            CRIT: ${bot.crit}%
-          </div>
-        </div>
-        <button class="tauntBtn" onclick="taunt(${bot.id})">Taunt</button>
-      `;
+          <button class="tauntBtn" onclick="taunt(${bot.id})">Taunt</button>
+        `;
 
-      list.appendChild(botDiv);
-      updateBotUI(bot);
+        list.appendChild(botDiv);
+        updateBotUI(bot);
+      });
     }
 
     function updateBotUI(bot) {
@@ -695,7 +795,7 @@
 
       bar.style.width = percent + "%";
       bar.style.backgroundColor = getHealthColor(percent);
-      hpText.textContent = bot.health;
+      hpText.textContent = Math.max(0, Math.round(bot.health));
     }
 
     function taunt(id) {
@@ -726,8 +826,14 @@
       log(`${bot.emoji} ${bot.name} taunts the arena.`);
     }
 
-    // BATTLE LOGIC
+    // =========================
+    // BATTLE LOGIC (GM ONLY)
+    // =========================
     function prepareBattle() {
+      if (!isGameMaster) {
+        alert("Only the Game Master can start the battle.");
+        return;
+      }
       if (battleRunning) return;
       if (bots.length < 2) {
         alert("Need at least 2 squad bots to fight.");
@@ -735,7 +841,6 @@
       }
 
       battleRunning = true;
-      document.getElementById("startQuizBtn").disabled = true;
 
       let count = 3;
       const countdownDiv = document.getElementById("countdown");
@@ -792,17 +897,17 @@
         animateAttack(attacker, target);
         updateBotUI(target);
 
-        if (target.health === 0) {
+        if (target.health <= 0) {
           if (critHit) {
-            log(`💥 CRIT KO! ${attacker.emoji} ${attacker.name} deletes ${target.emoji} ${target.name} with ${damage} damage!`);
+            log(`💥 CRIT KO! ${attacker.emoji} ${attacker.name} deletes ${target.emoji} ${target.name} with ${Math.round(damage)} damage!`);
           } else {
-            log(`💥 ${attacker.emoji} ${attacker.name} KOs ${target.emoji} ${target.name} with ${damage} damage!`);
+            log(`💥 ${attacker.emoji} ${attacker.name} KOs ${target.emoji} ${target.name} with ${Math.round(damage)} damage!`);
           }
         } else {
           if (critHit) {
-            log(`⚡ CRIT! ${attacker.emoji} ${attacker.name} hits ${target.emoji} ${target.name} for ${damage}. (${target.health} HP left)`);
+            log(`⚡ CRIT! ${attacker.emoji} ${attacker.name} hits ${target.emoji} ${target.name} for ${Math.round(damage)}. (${Math.round(target.health)} HP left)`);
           } else {
-            log(`⚔️ ${attacker.emoji} ${attacker.name} hits ${target.emoji} ${target.name} for ${damage}. (${target.health} HP left)`);
+            log(`⚔️ ${attacker.emoji} ${attacker.name} hits ${target.emoji} ${target.name} for ${Math.round(damage)}. (${Math.round(target.health)} HP left)`);
           }
         }
       }, 750);
