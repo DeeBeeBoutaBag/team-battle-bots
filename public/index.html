@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Oakland Battle Bots '25 – Leadership Gauntlet</title>
+  <title>Team Battle Bots – Leadership Gauntlet</title>
   <meta charset="UTF-8" />
   <style>
     body {
@@ -55,8 +55,9 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      transition: transform 0.15s;
+      transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s, filter 0.15s, border 0.15s;
       position: relative;
+      border: 1px solid transparent;
     }
 
     .botEmoji { font-size: 26px; }
@@ -137,6 +138,26 @@
     @keyframes hitFlash {
       0%   { background-color: #7f1d1d; }
       100% { background-color: #020617; }
+    }
+
+    /* Status styles */
+    .bot.alive {
+      box-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
+    }
+
+    .bot.eliminated {
+      opacity: 0.35;
+      filter: grayscale(0.6);
+    }
+
+    .bot.champ {
+      box-shadow: 0 0 18px rgba(234, 179, 8, 0.9);
+      border-color: #eab308;
+    }
+
+    .bot.currentMatch {
+      border-color: #22d3ee;
+      box-shadow: 0 0 14px rgba(34, 211, 238, 0.7);
     }
 
     #logPanel {
@@ -337,7 +358,7 @@
 </head>
 <body>
 
-  <h1>🤖 Team Battle Bots – Leadership Tournament</h1>
+  <h1>🤖 Oakland Battle Bots '25 – Leadership Gauntlet</h1>
   <div class="subtitle">
     Each breakout squad builds ONE bot from leadership questions. Then we run a 1v1 bracket until a champion remains.
   </div>
@@ -345,7 +366,7 @@
   <div id="roleSelect">
     <button onclick="selectRole('squad')">I'm a Squad</button>
     <button onclick="selectRole('gm')">I'm Game Master</button>
-    <div id="roleHint">⚠️ Students click "I'm a Squad". Only you click "I'm Game Master".</div>
+    <div id="roleHint">⚠️ Geniuses click "I'm a Squad". Only Educator clicks "I'm Game Master".</div>
   </div>
 
   <div id="arena" class="hidden">
@@ -390,13 +411,21 @@
         <button class="main" onclick="refreshBots()">Refresh Bots Now</button>
         <button class="main" id="startBtn" onclick="prepareTournament()">START TOURNAMENT</button>
         <div id="countdown"></div>
+
+        <div style="margin-top:10px;">
+          <div class="small"><strong>Bracket View</strong> :</div>
+          <div id="seeding" class="small" style="margin-top:6px; max-height:170px; overflow-y:auto; text-align:left;"></div>
+          <div id="currentMatch" class="small" style="margin-top:8px; font-weight:bold;"></div>
+        </div>
       </div>
     </div>
 
     <!-- Bots List (GM only visible; hidden for squads) -->
     <div id="bots">
       <h2>Squad Bots in Tournament</h2>
-      <div class="small">All finished squads appear here with their stats.</div>
+      <div class="small">
+        Bots glowing green are still alive. Greyed-out bots are eliminated. Gold = champion.
+      </div>
       <div id="botsList"></div>
     </div>
 
@@ -422,6 +451,7 @@
     let currentPairIndex = 0;
     let roundNumber = 1;
     let duelMatchNumber = 1;
+    let eliminatedBots = [];
 
     // Squad-side quiz data
     let buildingBot = null;
@@ -436,6 +466,14 @@
       crit: 0,
       correctCount: 0
     };
+
+    const crowdChants = [
+      "👀 Crowd leans in... could be an upset.",
+      "🔥 Chat spamming “NO WAY” right now.",
+      "😳 Everyone holding their breath for this one.",
+      "📣 The lockers are shaking. This match is wild.",
+      "🎧 If you’re not yelling by now, you’re not paying attention."
+    ];
 
     // ROLE SELECTION
     function selectRole(role) {
@@ -487,7 +525,7 @@
       {
         id: "q1",
         topic: "Capitalism",
-        text: "Capitalism, as described here, is best understood as:",
+        text: "Capitalism, as described in our leadership, is best understood as:",
         correct: "b",
         attr: "attack",
         options: {
@@ -552,7 +590,7 @@
       {
         id: "q6",
         topic: "Internalized racism",
-        text: "Which is a sign of internalized racism from this definition?",
+        text: "Which is a sign of internalized racism from our definitionwe learned?",
         correct: "c",
         attr: "attack",
         options: {
@@ -578,7 +616,7 @@
       {
         id: "q8",
         topic: "Patriarchy",
-        text: "According to this definition, patriarchy is connected to:",
+        text: "According to our leaderships, patriarchy is connected to:",
         correct: "d",
         attr: "speed",
         options: {
@@ -591,7 +629,7 @@
       {
         id: "q9",
         topic: "Power",
-        text: "One definition of power given here is:",
+        text: "One definition of power we learned is:",
         correct: "c",
         attr: "crit",
         options: {
@@ -669,7 +707,7 @@
       {
         id: "q15",
         topic: "White privilege",
-        text: "In this framework, white privilege and racial oppression are:",
+        text: "In our past leaderships, white privilege and racial oppression are:",
         correct: "b",
         attr: "attack",
         options: {
@@ -682,7 +720,7 @@
       {
         id: "q16",
         topic: "White supremacy",
-        text: "White supremacy is defined here as a system that:",
+        text: "White supremacy is defined as a system that:",
         correct: "a",
         attr: "speed",
         options: {
@@ -929,11 +967,11 @@
 
         // rough archetype based on stats
         let style = "Trickster";
-        if (b.maxHealth >= 160) {
+        if (b.maxHealth >= 150) {
           style = "Tank";
-        } else if (b.crit >= 30) {
+        } else if (b.crit >= 25) {
           style = "Assassin";
-        } else if (avgAtk >= 15) {
+        } else if (avgAtk >= 10) {
           style = "Bruiser";
         }
 
@@ -1019,6 +1057,16 @@
       }
     }
 
+    function setBotStatus(bot, status) {
+      bot.status = status;
+      const div = document.getElementById("bot-" + bot.id);
+      if (!div) return;
+      div.classList.remove("alive", "eliminated", "champ");
+      if (status === "alive") div.classList.add("alive");
+      if (status === "eliminated") div.classList.add("eliminated");
+      if (status === "champ") div.classList.add("champ");
+    }
+
     function renderAllBots() {
       const list = document.getElementById("botsList");
       list.innerHTML = "";
@@ -1048,6 +1096,9 @@
 
         list.appendChild(botDiv);
         updateBotUI(bot);
+        if (bot.status) {
+          setBotStatus(bot, bot.status);
+        }
       });
     }
 
@@ -1093,6 +1144,43 @@
 
     // -------- TOURNAMENT BRACKET LOGIC (1v1, rounds) --------
 
+    function updateCurrentMatchText(text) {
+      const el = document.getElementById("currentMatch");
+      if (!el) return;
+      el.textContent = text || "";
+    }
+
+    function renderBracketOverview() {
+      const seedingDiv = document.getElementById("seeding");
+      if (!seedingDiv) return;
+
+      const currentNames = currentRoundCompetitors.map((b, idx) => `${idx + 1}. ${b.emoji} ${b.name} (${b.style})`);
+      const nextNames = nextRoundCompetitors.map(b => `${b.emoji} ${b.name}`);
+      const outNames = eliminatedBots.map(b => `${b.emoji} ${b.name}`);
+
+      seedingDiv.innerHTML =
+        `<div><strong>Round ${roundNumber} lineup:</strong></div>` +
+        (currentNames.length
+          ? `<div>${currentNames.join("<br>")}</div>`
+          : `<div>All matches in this round are done.</div>`) +
+        `<div style="margin-top:6px;"><strong>Already qualified:</strong> ${nextNames.length ? nextNames.join(", ") : "—"}</div>` +
+        `<div style="margin-top:6px;"><strong>Eliminated:</strong> ${outNames.length ? outNames.join(", ") : "—"}</div>`;
+    }
+
+    function clearCurrentMatchHighlight() {
+      document.querySelectorAll(".bot.currentMatch").forEach(div => {
+        div.classList.remove("currentMatch");
+      });
+    }
+
+    function highlightCurrentDuel(botA, botB) {
+      clearCurrentMatchHighlight();
+      [botA, botB].forEach(b => {
+        const d = document.getElementById("bot-" + b.id);
+        if (d) d.classList.add("currentMatch");
+      });
+    }
+
     function prepareTournament() {
       if (!isGameMaster) {
         alert("Only the Game Master can start the tournament.");
@@ -1105,10 +1193,12 @@
       }
 
       battleRunning = true;
+      eliminatedBots = [];
 
       // Reset health for fair tournament
       bots.forEach(b => {
         b.health = b.maxHealth;
+        setBotStatus(b, "alive");
       });
       classifyBotsForBattle();
       renderAllBots();
@@ -1121,8 +1211,10 @@
 
       log("🏁 Tournament seeded. Bots are being shuffled into a bracket...");
       makeRoundPairs();
+      renderBracketOverview();
+      updateCurrentMatchText("Tournament seeding locked. Get ready for Round 1.");
 
-      let count = 3;
+      let count = 10;
       const countdownDiv = document.getElementById("countdown");
       countdownDiv.textContent = "Tournament starts in: " + count;
 
@@ -1136,12 +1228,12 @@
           log(`🔥 ROUND ${roundNumber} begins! Every match is 1v1 – winner moves on.`);
           startNextDuel();
         }
-      }, 900);
+      }, 1000);
     }
 
     function makeRoundPairs() {
       roundPairs = [];
-      nextRoundCompetitors = [];
+      nextRoundCompetitors = nextRoundCompetitors || [];
       currentPairIndex = 0;
 
       // if odd, last bot gets a bye
@@ -1161,29 +1253,61 @@
     function startNextDuel() {
       // If we finished all pairs in this round, move to next round
       if (currentPairIndex >= roundPairs.length) {
+        clearCurrentMatchHighlight();
+
         // If only one bot remains overall, we have a champion
         if (nextRoundCompetitors.length === 1) {
           const champ = nextRoundCompetitors[0];
           const countdownDiv = document.getElementById("countdown");
           countdownDiv.textContent = `🏆 CHAMPION: ${champ.emoji} ${champ.name}`;
           log(`🏆 TOURNAMENT CHAMPION: ${champ.emoji} ${champ.name} (${champ.style}) survives every round!`);
+          setBotStatus(champ, "champ");
+          renderBracketOverview();
+          updateCurrentMatchText("Tournament complete. Salute your champion.");
           battleRunning = false;
           return;
         }
 
-        // Otherwise, start the next round with winners
+        // Otherwise, set up next round but give them a break with a 10s countdown
         currentRoundCompetitors = [...nextRoundCompetitors];
+        nextRoundCompetitors = [];
         makeRoundPairs();
         roundNumber++;
         duelMatchNumber = 1;
-        log(`🔥 ROUND ${roundNumber} begins with ${currentRoundCompetitors.length + nextRoundCompetitors.length} bots in play.`);
+
+        log(`⏸️ Round ${roundNumber - 1} is over. Squads, catch your breath and talk your trash.`);
+        renderBracketOverview();
+
+        const countdownDiv = document.getElementById("countdown");
+        let count = 15;
+        countdownDiv.textContent = `Next round starts in: ${count}`;
+        updateCurrentMatchText(`Break time. Next up: Round ${roundNumber}.`);
+
+        const breakInterval = setInterval(() => {
+          count--;
+          if (count > 0) {
+            countdownDiv.textContent = `Next round starts in: ${count}`;
+          } else {
+            clearInterval(breakInterval);
+            countdownDiv.textContent = `Round ${roundNumber} – Fight!`;
+            log(`🚨 ROUND ${roundNumber} starts now!`);
+            renderBracketOverview();
+            startNextDuel();
+          }
+        }, 1000);
+
+        return;
       }
 
       const [a, b] = roundPairs[currentPairIndex];
       log(`⚔️ ROUND ${roundNumber}, MATCH ${duelMatchNumber}: ${a.emoji} ${a.name} (${a.style}) vs ${b.emoji} ${b.name} (${b.style}). Place your bets.`);
+      if (Math.random() < 0.6) {
+        log(crowdChants[Math.floor(Math.random() * crowdChants.length)]);
+      }
       currentPairIndex++;
       duelMatchNumber++;
 
+      updateCurrentMatchText(`Round ${roundNumber}, Match ${duelMatchNumber - 1}: ${a.emoji} ${a.name} vs ${b.emoji} ${b.name}`);
       startDuelLoop(a, b);
     }
 
@@ -1195,6 +1319,7 @@
       botB.health = botB.health ?? botB.maxHealth;
       updateBotUI(botA);
       updateBotUI(botB);
+      highlightCurrentDuel(botA, botB);
 
       duelInterval = setInterval(() => {
         const alive = [botA, botB].filter(b => b.health > 0);
@@ -1206,9 +1331,15 @@
           if (winner) {
             log(`💥 ${winner.emoji} ${winner.name} (${winner.style}) ELIMINATES ${loser.emoji} ${loser.name} and moves on!`);
             nextRoundCompetitors.push(winner);
+            setBotStatus(loser, "eliminated");
+            eliminatedBots.push(loser);
           } else {
             log("Both bots knocked each other out – no one advances from this match.");
+            setBotStatus(botA, "eliminated");
+            setBotStatus(botB, "eliminated");
+            eliminatedBots.push(botA, botB);
           }
+          renderBracketOverview();
           startNextDuel();
           return;
         }
