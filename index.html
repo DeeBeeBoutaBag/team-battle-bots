@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Team Battle Bots – Quiz Arena</title>
+  <meta charset="UTF-8" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: radial-gradient(circle at top, #1f2933, #020617);
+      color: #f9fafb;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h1 { margin-bottom: 5px; }
+    h2 { margin-top: 20px; margin-bottom: 10px; }
+
+    #arena {
+      display: flex;
+      gap: 20px;
+      margin-top: 20px;
+      align-items: flex-start;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    #controls, #logPanel {
+      background: rgba(15, 23, 42, 0.95);
+      padding: 15px;
+      border-radius: 10px;
+      width: 280px;
+      box-shadow: 0 0 10px rgba(15, 23, 42, 0.7);
+    }
+
+    #bots {
+      flex: 1;
+      min-width: 320px;
+      max-width: 650px;
+      background: rgba(15, 23, 42, 0.95);
+      border-radius: 10px;
+      padding: 10px 10px 15px;
+      box-shadow: 0 0 10px rgba(15, 23, 42, 0.7);
+      max-height: 480px;
+      overflow-y: auto;
+    }
+
+    .bot {
+      margin: 8px auto;
+      padding: 8px 10px;
+      background: #020617;
+      border-radius: 10px;
+      width: 100%;
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: transform 0.15s;
+      position: relative;
+    }
+
+    .botEmoji { font-size: 26px; }
+
+    .botInfo { flex: 1; text-align: left; }
+
+    .botName {
+      font-weight: bold;
+      margin-bottom: 3px;
+    }
+
+    .health {
+      height: 16px;
+      background: #111827;
+      border-radius: 999px;
+      overflow: hidden;
+      border: 1px solid #1f2937;
+    }
+
+    .bar {
+      height: 100%;
+      width: 100%;
+      transition: width 0.3s;
+    }
+
+    .stats {
+      font-size: 11px;
+      margin-top: 3px;
+      opacity: 0.85;
+    }
+
+    .tauntBtn {
+      background: #f97316;
+      border: none;
+      color: #111827;
+      padding: 4px 8px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: bold;
+    }
+
+    .tauntBtn:active { transform: scale(0.95); }
+
+    .tauntBubble {
+      position: absolute;
+      right: 10px;
+      top: -5px;
+      background: #facc15;
+      color: #111827;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      animation: floatUp 1s ease-out forwards;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+
+    @keyframes floatUp {
+      0%   { opacity: 0; transform: translateY(8px); }
+      10%  { opacity: 1; }
+      100% { opacity: 0; transform: translateY(-18px); }
+    }
+
+    /* Battle animations */
+    .attacking { animation: attackShake 0.25s; }
+
+    @keyframes attackShake {
+      0%   { transform: translateX(0); }
+      25%  { transform: translateX(-3px); }
+      50%  { transform: translateX(3px); }
+      75%  { transform: translateX(-2px); }
+      100% { transform: translateX(0); }
+    }
+
+    .hit { animation: hitFlash 0.3s; }
+
+    @keyframes hitFlash {
+      0%   { background-color: #7f1d1d; }
+      100% { background-color: #020617; }
+    }
+
+    #logPanel {
+      text-align: left;
+      max-height: 480px;
+      overflow-y: auto;
+      font-size: 13px;
+    }
+
+    #log {
+      max-height: 380px;
+      overflow-y: auto;
+      padding-right: 5px;
+    }
+
+    .logLine { margin-bottom: 4px; }
+
+    #countdown {
+      font-size: 20px;
+      font-weight: bold;
+      margin-top: 10px;
+      min-height: 24px;
+    }
+
+    input, select {
+      padding: 6px 8px;
+      border-radius: 6px;
+      border: 1px solid #4b5563;
+      background: #020617;
+      color: #f9fafb;
+      margin-bottom: 8px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    button.main {
+      margin-top: 10px;
+      padding: 8px 16px;
+      border-radius: 999px;
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 14px;
+      background: linear-gradient(90deg, #22c55e, #22d3ee);
+      color: #020617;
+      width: 100%;
+    }
+
+    button.main:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .subtitle { font-size: 13px; opacity: 0.9; }
+    .small { font-size: 11px; opacity: 0.7; }
+
+    /* Quiz section */
+    #quizContainer {
+      margin-top: 12px;
+      background: #020617;
+      border-radius: 10px;
+      padding: 10px;
+      text-align: left;
+      font-size: 12px;
+      max-height: 340px;
+      overflow-y: auto;
+      display: none;
+    }
+
+    #quizTimer {
+      font-size: 16px;
+      font-weight: bold;
+      margin-bottom: 6px;
+    }
+
+    #questionBox {
+      margin-bottom: 8px;
+    }
+
+    #questionBox label {
+      display: block;
+      margin-left: 4px;
+      margin-bottom: 4px;
+      cursor: pointer;
+    }
+
+    #quizSummary {
+      margin-top: 8px;
+      font-size: 11px;
+      line-height: 1.4;
+      text-align: left;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🤖 Team Battle Bots – Quiz Arena</h1>
+  <div class="subtitle">
+    Breakout squads of 6 build ONE bot from Python + HTML answers. Best bot wins.
+  </div>
+
+  <div id="arena">
+    <!-- Controls / Build Panel -->
+    <div id="controls">
+      <h2>Build Your Squad's Bot</h2>
+      <input id="botName" placeholder="Squad bot name (e.g. BugHunters)" maxlength="20">
+      <select id="botEmoji">
+        <option value="🤖">🤖 Robot</option>
+        <option value="🐉">🐉 Dragon</option>
+        <option value="💀">💀 Skull</option>
+        <option value="🦈">🦈 Shark</option>
+        <option value="🐐">🐐 GOAT</option>
+        <option value="🔥">🔥 Fire</option>
+        <option value="⚡">⚡ Lightning</option>
+      </select>
+      <button class="main" id="startQuizBtn" onclick="startQuiz()">Start Squad Quiz</button>
+
+      <div id="quizContainer">
+        <div id="quizTimer"></div>
+        <div class="small">15 questions. Your squad has ~35 seconds per question. Talk fast.</div>
+        <br />
+        <div id="questionBox"></div>
+        <button class="main" onclick="submitAnswer()">Submit Answer</button>
+      </div>
+
+      <div id="quizSummary"></div>
+
+      <h2>Battle Control</h2>
+      <button class="main" id="startBtn" onclick="prepareBattle()">START BATTLE</button>
+      <div id="countdown"></div>
+      <div class="small">Game Master: only hit this when ALL squads have added their bot.</div>
+    </div>
+
+    <!-- Bots List -->
+    <div id="bots">
+      <h2>Squad Bots in Queue</h2>
+      <div class="small">One bot per breakout room. Taunts are allowed. 😈</div>
+      <div id="botsList"></div>
+    </div>
+
+    <!-- Battle Log -->
+    <div id="logPanel">
+      <h2>Arena Log</h2>
+      <div id="log"></div>
+    </div>
+  </div>
+
+  <script>
+    let bots = [];
+    let battleInterval = null;
+    let battleRunning = false;
+    let buildingBot = null;
+
+    let currentQuestionIndex = 0;
+    let quizTimer = null;
+    let timeLeft = 35;
+
+    let upgradeStats = {
+      attack: 0,
+      health: 0,
+      speed: 0,
+      crit: 0,
+      correctCount: 0
+    };
+
+    const questions = [
+      // Python – Attack
+      {
+        id: "q1",
+        text: "Q1 (Python – Attack): What does type(5) return in Python?",
+        correct: "b",
+        attr: "attack",
+        options: {
+          a: "\"integer\"",
+          b: "The type <class 'int'>",
+          c: "int()",
+          d: "\"int\""
+        }
+      },
+      {
+        id: "q2",
+        text: "Q2 (Python – Attack): What is the result of 3 * \"ha\" ?",
+        correct: "c",
+        attr: "attack",
+        options: {
+          a: "\"ha3\"",
+          b: "[\"ha\", \"ha\", \"ha\"]",
+          c: "\"hahaha\"",
+          d: "An error"
+        }
+      },
+      {
+        id: "q3",
+        text: "Q3 (Python – Attack): Which is a valid Python variable name?",
+        correct: "c",
+        attr: "attack",
+        options: {
+          a: "first-name",
+          b: "1score",
+          c: "score_1",
+          d: "if"
+        }
+      },
+      // Python – Speed
+      {
+        id: "q4",
+        text: "Q4 (Python – Speed): Which keyword starts a loop?",
+        correct: "b",
+        attr: "speed",
+        options: {
+          a: "loop",
+          b: "for",
+          c: "repeat",
+          d: "iterate"
+        }
+      },
+      {
+        id: "q5",
+        text: "Q5 (Python – Speed): range(5) generates:",
+        correct: "b",
+        attr: "speed",
+        options: {
+          a: "Numbers 1–5",
+          b: "Numbers 0–4",
+          c: "[5]",
+          d: "Five random numbers"
+        }
+      },
+      {
+        id: "q6",
+        text: "Q6 (Python – Speed): In an if/else, when does else run?",
+        correct: "b",
+        attr: "speed",
+        options: {
+          a: "When the if is true",
+          b: "When the if is false",
+          c: "It ends the program",
+          d: "It creates a loop"
+        }
+      },
+      // Python – Crit
+      {
+        id: "q7",
+        text: "Q7 (Python – Crit): What is True and False ?",
+        correct: "b",
+        attr: "crit",
+        options: {
+          a: "True",
+          b: "False",
+          c: "\"TrueFalse\"",
+          d: "An error"
+        }
+      },
+      {
+        id: "q8",
+        text: "Q8 (Python – Crit): What does not True evaluate to?",
+        correct: "c",
+        attr: "crit",
+        options: {
+          a: "\"True\"",
+          b: "True",
+          c: "False",
+          d: "An error"
+        }
+      },
+      // HTML – Health
+      {
+        id: "q9",
+        text: "Q9 (HTML – Health): Which tag creates a numbered list?",
+        correct: "b",
+        attr: "health",
+        options: {
+          a: "&lt;ul&gt;",
+          b: "&lt;ol&gt;",
+          c: "&lt;li&gt;",
+          d: "&lt;list&gt;"
+        }
+      },
+      {
+        id: "q10",
+        text: "Q10 (HTML – Health): Which tag makes text bold?",
+        correct: "b",
+        attr: "health",
+        options: {
+          a: "&lt;bold&gt;",
+          b: "&lt;b&gt;",
+          c: "&lt;style&gt;",
+          d: "&lt;head&gt;"
+        }
+      },
+      // HTML – Crit
+      {
+        id: "q11",
+        text: "Q11 (HTML – Crit): Which attribute helps with image accessibility?",
+        correct: "c",
+        attr: "crit",
+        options: {
+          a: "id=\"\"",
+          b: "href=\"\"",
+          c: "alt=\"\"",
+          d: "class=\"\""
+        }
+      },
+      {
+        id: "q12",
+        text: "Q12 (HTML – Crit): Where do you normally put JavaScript on a page?",
+        correct: "b",
+        attr: "crit",
+        options: {
+          a: "In a &lt;div&gt;",
+          b: "Inside &lt;script&gt;",
+          c: "Inside &lt;title&gt;",
+          d: "In the &lt;img&gt; tag"
+        }
+      },
+      // HTML – Health / Attack / Speed
+      {
+        id: "q13",
+        text: "Q13 (HTML – Health): Which tag holds all visible page content?",
+        correct: "a",
+        attr: "health",
+        options: {
+          a: "&lt;body&gt;",
+          b: "&lt;head&gt;",
+          c: "&lt;style&gt;",
+          d: "&lt;meta&gt;"
+        }
+      },
+      {
+        id: "q14",
+        text: "Q14 (HTML – Attack): Which tag is used for a line break?",
+        correct: "b",
+        attr: "attack",
+        options: {
+          a: "&lt;hr&gt;",
+          b: "&lt;br&gt;",
+          c: "&lt;lb&gt;",
+          d: "&lt;line&gt;"
+        }
+      },
+      {
+        id: "q15",
+        text: "Q15 (HTML – Speed): What does the &lt;input&gt; tag do?",
+        correct: "c",
+        attr: "speed",
+        options: {
+          a: "Makes a dropdown only",
+          b: "Creates a clickable link",
+          c: "Lets users type something",
+          d: "Creates a header"
+        }
+      }
+    ];
+
+    function log(message) {
+      const logDiv = document.getElementById("log");
+      const line = document.createElement("div");
+      line.className = "logLine";
+      line.textContent = message;
+      logDiv.appendChild(line);
+      logDiv.scrollTop = logDiv.scrollHeight;
+    }
+
+    function randomBetween(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function getHealthColor(healthPercent) {
+      if (healthPercent > 60) return "#22c55e";     // green
+      if (healthPercent > 30) return "#facc15";     // yellow
+      return "#ef4444";                             // red
+    }
+
+    // QUIZ LOGIC
+    function startQuiz() {
+      if (battleRunning) return;
+
+      const nameInput = document.getElementById("botName");
+      const emojiSelect = document.getElementById("botEmoji");
+      const name = nameInput.value.trim();
+      const emoji = emojiSelect.value;
+
+      if (!name) {
+        alert("Enter your squad bot name first.");
+        return;
+      }
+
+      buildingBot = { name, emoji };
+
+      // Reset upgrades and quiz progress
+      upgradeStats = { attack: 0, health: 0, speed: 0, crit: 0, correctCount: 0 };
+      currentQuestionIndex = 0;
+
+      document.getElementById("quizSummary").textContent = "";
+      document.getElementById("quizContainer").style.display = "block";
+      document.getElementById("startQuizBtn").disabled = true;
+
+      log(`${emoji} Squad "${name}" started the quiz to power up their bot.`);
+      showQuestion(currentQuestionIndex);
+    }
+
+    function showQuestion(index) {
+      if (index >= questions.length) {
+        finalizeSquadBot();
+        return;
+      }
+
+      const q = questions[index];
+      const box = document.getElementById("questionBox");
+
+      box.innerHTML = `
+        <div class="q-text"><strong>${q.text}</strong></div>
+        ${Object.keys(q.options)
+          .map(letter => `
+            <label>
+              <input type="radio" name="answer" value="${letter}">
+              ${q.options[letter]}
+            </label>
+          `)
+          .join("")}
+      `;
+
+      startQuestionTimer();
+    }
+
+    function startQuestionTimer() {
+      if (quizTimer) {
+        clearInterval(quizTimer);
+      }
+      timeLeft = 35;
+      updateTimerDisplay();
+
+      quizTimer = setInterval(() => {
+        timeLeft--;
+        updateTimerDisplay();
+
+        if (timeLeft <= 0) {
+          clearInterval(quizTimer);
+          lockCurrentQuestionAsWrong();
+          goToNextQuestion();
+        }
+      }, 1000);
+    }
+
+    function updateTimerDisplay() {
+      const timerEl = document.getElementById("quizTimer");
+      timerEl.textContent = `⏳ ${timeLeft}s`;
+    }
+
+    function submitAnswer() {
+      if (!buildingBot) return;
+      if (quizTimer) {
+        clearInterval(quizTimer);
+      }
+
+      const q = questions[currentQuestionIndex];
+      const selected = document.querySelector('input[name="answer"]:checked');
+
+      if (selected && selected.value === q.correct) {
+        upgradeStats[q.attr]++;
+        upgradeStats.correctCount++;
+      }
+
+      goToNextQuestion();
+    }
+
+    function lockCurrentQuestionAsWrong() {
+      // Do nothing: unanswered == wrong, no stat upgrade
+    }
+
+    function goToNextQuestion() {
+      currentQuestionIndex++;
+      showQuestion(currentQuestionIndex);
+    }
+
+    function finalizeSquadBot() {
+      if (!buildingBot) return;
+
+      // Base stats plus upgrades
+      let maxHealth = 100 + upgradeStats.health * 15;
+      let attackMin = 5 + upgradeStats.attack;
+      let attackMax = 12 + upgradeStats.attack * 3;
+      let speed = 5 + upgradeStats.speed * 2;
+      let critChance = 5 + upgradeStats.crit * 6;
+
+      const botId = Date.now();
+      const name = buildingBot.name;
+      const emoji = buildingBot.emoji;
+
+      const bot = {
+        id: botId,
+        name,
+        emoji,
+        health: maxHealth,
+        maxHealth,
+        attackMin,
+        attackMax,
+        speed,
+        crit: critChance
+      };
+
+      bots.push(bot);
+      renderBot(bot);
+
+      const summary = document.getElementById("quizSummary");
+      summary.innerHTML = `
+        ✅ Squad locked in <strong>${emoji} ${name}</strong><br>
+        Correct answers: <strong>${upgradeStats.correctCount}/15</strong><br>
+        Upgrades → Attack: +${upgradeStats.attack}, Health: +${upgradeStats.health}, Speed: +${upgradeStats.speed}, Crit: +${upgradeStats.crit}
+      `;
+
+      log(`✅ ${emoji} Squad "${name}" finished the quiz: ${upgradeStats.correctCount}/15 correct. Their bot enters the queue!`);
+
+      // Reset for next squad
+      buildingBot = null;
+      document.getElementById("startQuizBtn").disabled = false;
+      document.getElementById("quizContainer").style.display = "none";
+      document.getElementById("botName").value = "";
+    }
+
+    // BOT RENDERING
+    function renderBot(bot) {
+      const list = document.getElementById("botsList");
+
+      const botDiv = document.createElement("div");
+      botDiv.className = "bot";
+      botDiv.id = "bot-" + bot.id;
+
+      botDiv.innerHTML = `
+        <div class="botEmoji">${bot.emoji}</div>
+        <div class="botInfo">
+          <div class="botName">${bot.name}</div>
+          <div class="health">
+            <div class="bar" id="bar-${bot.id}"></div>
+          </div>
+          <div class="stats">
+            HP: <span id="hp-${bot.id}">${bot.health}</span> |
+            ATK: ${bot.attackMin}-${bot.attackMax} |
+            SPD: ${bot.speed} |
+            CRIT: ${bot.crit}%
+          </div>
+        </div>
+        <button class="tauntBtn" onclick="taunt(${bot.id})">Taunt</button>
+      `;
+
+      list.appendChild(botDiv);
+      updateBotUI(bot);
+    }
+
+    function updateBotUI(bot) {
+      const percent = (bot.health / bot.maxHealth) * 100;
+      const bar = document.getElementById("bar-" + bot.id);
+      const hpText = document.getElementById("hp-" + bot.id);
+
+      if (!bar || !hpText) return;
+
+      bar.style.width = percent + "%";
+      bar.style.backgroundColor = getHealthColor(percent);
+      hpText.textContent = bot.health;
+    }
+
+    function taunt(id) {
+      const bot = bots.find(b => b.id === id);
+      if (!bot) return;
+
+      const taunts = [
+        "This is free XP 💀",
+        "Easy clap 😂",
+        "Y'all sure about this?",
+        "Light work 💪",
+        "Don't lag now 👀",
+        "I'm HIM.",
+        "Say goodbye 😈"
+      ];
+      const botDiv = document.getElementById("bot-" + id);
+      if (!botDiv) return;
+
+      const bubble = document.createElement("div");
+      bubble.className = "tauntBubble";
+      bubble.textContent = taunts[Math.floor(Math.random() * taunts.length)];
+      botDiv.appendChild(bubble);
+
+      setTimeout(() => {
+        bubble.remove();
+      }, 1000);
+
+      log(`${bot.emoji} ${bot.name} taunts the arena.`);
+    }
+
+    // BATTLE LOGIC
+    function prepareBattle() {
+      if (battleRunning) return;
+      if (bots.length < 2) {
+        alert("Need at least 2 squad bots to fight.");
+        return;
+      }
+
+      battleRunning = true;
+      document.getElementById("startQuizBtn").disabled = true;
+
+      let count = 3;
+      const countdownDiv = document.getElementById("countdown");
+      countdownDiv.textContent = "Battle starts in: " + count;
+
+      const countdownInterval = setInterval(() => {
+        count--;
+        if (count > 0) {
+          countdownDiv.textContent = "Battle starts in: " + count;
+        } else {
+          clearInterval(countdownInterval);
+          countdownDiv.textContent = "FIGHT!";
+          log("🔥 The squad battle begins!");
+          startBattleLoop();
+        }
+      }, 900);
+    }
+
+    function startBattleLoop() {
+      if (battleInterval) clearInterval(battleInterval);
+
+      battleInterval = setInterval(() => {
+        const alive = bots.filter(b => b.health > 0);
+
+        if (alive.length <= 1) {
+          clearInterval(battleInterval);
+          const countdownDiv = document.getElementById("countdown");
+          if (alive.length === 1) {
+            const winner = alive[0];
+            countdownDiv.textContent = `🏆 WINNER: ${winner.emoji} ${winner.name}`;
+            log(`🏆 WINNER: ${winner.emoji} ${winner.name} is the top squad bot.`);
+          } else {
+            countdownDiv.textContent = "No one survived… 😬";
+            log("No bots survived. The arena claims all.");
+          }
+          return;
+        }
+
+        const attacker = pickWeightedAttacker(alive);
+        let target = alive[Math.floor(Math.random() * alive.length)];
+        if (attacker.id === target.id && alive.length > 1) {
+          target = alive.filter(b => b.id !== attacker.id)[0];
+        }
+
+        let damage = randomBetween(attacker.attackMin, attacker.attackMax);
+        let critHit = false;
+        if (Math.random() * 100 < attacker.crit) {
+          damage *= 2;
+          critHit = true;
+        }
+
+        target.health = Math.max(0, target.health - damage);
+
+        animateAttack(attacker, target);
+        updateBotUI(target);
+
+        if (target.health === 0) {
+          if (critHit) {
+            log(`💥 CRIT KO! ${attacker.emoji} ${attacker.name} deletes ${target.emoji} ${target.name} with ${damage} damage!`);
+          } else {
+            log(`💥 ${attacker.emoji} ${attacker.name} KOs ${target.emoji} ${target.name} with ${damage} damage!`);
+          }
+        } else {
+          if (critHit) {
+            log(`⚡ CRIT! ${attacker.emoji} ${attacker.name} hits ${target.emoji} ${target.name} for ${damage}. (${target.health} HP left)`);
+          } else {
+            log(`⚔️ ${attacker.emoji} ${attacker.name} hits ${target.emoji} ${target.name} for ${damage}. (${target.health} HP left)`);
+          }
+        }
+      }, 750);
+    }
+
+    function pickWeightedAttacker(alive) {
+      const totalSpeed = alive.reduce((sum, b) => sum + b.speed, 0);
+      let roll = Math.random() * totalSpeed;
+      for (const b of alive) {
+        if (roll < b.speed) return b;
+        roll -= b.speed;
+      }
+      return alive[0];
+    }
+
+    function animateAttack(attacker, target) {
+      const attackerDiv = document.getElementById("bot-" + attacker.id);
+      const targetDiv = document.getElementById("bot-" + target.id);
+
+      if (attackerDiv) {
+        attackerDiv.classList.add("attacking");
+        setTimeout(() => attackerDiv.classList.remove("attacking"), 250);
+      }
+
+      if (targetDiv) {
+        targetDiv.classList.add("hit");
+        setTimeout(() => targetDiv.classList.remove("hit"), 250);
+      }
+    }
+  </script>
+
+</body>
+</html>
